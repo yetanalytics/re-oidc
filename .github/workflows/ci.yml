@@ -13,5 +13,8 @@ jobs:
     - name: Setup CI Environment
       uses: yetanalytics/actions/setup-env@v0.0.2
 
+    - name: Setup Chrome
+      uses: browser-actions/setup-chrome@latest
+
     - name: Run tests
       run: make ci
