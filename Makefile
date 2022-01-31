@@ -10,4 +10,4 @@ test:
 	clojure -Mfig:test
 
 ci:
-	clojure -Mfig:ci
+	clojure -Mfig:test-ci
