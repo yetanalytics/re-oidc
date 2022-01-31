@@ -10,16 +10,16 @@ Re-frame fx, event handlers and subscriptions are provided to allow interactive 
 
 Re-oidc requires a map of configuration options:
 
-| key                    | type     | default   | description                                                         |
-| -------------          | -------  | --------- | ----------------------------------------------------------------    |
-| `:auto-login`          | boolean  | false     | If no logged-in user is found, automatically initiate OIDC login    |
-| `:on-login-success`    | callback | none      | Action to perform after a login redirect is processed               |
-| `:on-login-failure`    | callback | none      | Action to perform after a login redirect failure                    |
-| `:on-logout-success`   | callback | none      | Action to perform after a logout redirect is processed              |
-| `:on-logout-failure`   | callback | none      | Action to perform after a logout redirect failure                   |
-| `:on-get-user-success` | callback | none      | Action to perform when an active logged-in user is found on init    |
-| `:on-get-user-failure` | callback | none      | Action to perform when an active logged-in user is not foundon init |
-| `:oidc-config`         | map      | none      | The configuration for oidc-client-js as a clojure map.              |
+| key                    | type     | default   | description                                                          |
+| -------------          | -------  | --------- | ----------------------------------------------------------------     |
+| `:auto-login`          | boolean  | false     | If no logged-in user is found, automatically initiate OIDC login     |
+| `:on-login-success`    | callback | none      | Action to perform after a login redirect is processed                |
+| `:on-login-failure`    | callback | none      | Action to perform after a login redirect failure                     |
+| `:on-logout-success`   | callback | none      | Action to perform after a logout redirect is processed               |
+| `:on-logout-failure`   | callback | none      | Action to perform after a logout redirect failure                    |
+| `:on-get-user-success` | callback | none      | Action to perform when an active logged-in user is found on init     |
+| `:on-get-user-failure` | callback | none      | Action to perform when an active logged-in user is not found on init |
+| `:oidc-config`         | map      | none      | The configuration for oidc-client-js as a clojure map.               |
 
 ### Callbacks
 
