@@ -1,0 +1,16 @@
+version: "3.9"
+
+configs:
+  test_realm:
+    file: ./test-realm.json
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:16.1.0
+    environment:
+      KEYCLOAK_IMPORT: /tmp/test-realm.json
+    configs:
+      - source: test_realm
+        target: /tmp/test-realm.json
+    ports:
+      - "8080:8080"
