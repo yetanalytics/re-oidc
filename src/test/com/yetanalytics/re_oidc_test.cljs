@@ -4,4 +4,4 @@
      [com.yetanalytics.re-oidc :as re-oidc]))
 
 (deftest dummy-test
-  (is true))
+  (is false))
