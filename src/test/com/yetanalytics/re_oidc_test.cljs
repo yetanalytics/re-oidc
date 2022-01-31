@@ -3,5 +3,5 @@
      [cljs.test :refer-macros [deftest is testing]]
      [com.yetanalytics.re-oidc :as re-oidc]))
 
-(deftest multiply-test
+(deftest dummy-test
   (is true))
