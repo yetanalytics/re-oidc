@@ -1,4 +1,4 @@
 ^{:watch-dirs ["src/dev" "src/lib" "src/test"]
   :css-dirs ["resources/public/css"]
-  :auto-testing false}
+  :auto-testing true}
 {:main com.yetanalytics.re-oidc.demo}
