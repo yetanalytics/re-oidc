@@ -1,7 +1,7 @@
 # re-oidc
 
 [![CI](https://github.com/yetanalytics/re-oidc/actions/workflows/ci.yml/badge.svg)](https://github.com/yetanalytics/re-oidc/actions/workflows/ci.yml)
-![Clojars Version (including pre-releases)](https://img.shields.io/clojars/v/com.yetanalytics/re-oidc?include_prereleases)
+[![Clojars Version (including pre-releases)](https://img.shields.io/clojars/v/com.yetanalytics/re-oidc?include_prereleases)](https://clojars.org/com.yetanalytics/re-oidc)
 
 A wrapper for [oidc-client-js](https://github.com/IdentityModel/oidc-client-js) providing [OIDC](https://openid.net/specs/openid-connect-core-1_0.html) support for re-frame + reagent applications in cljs.
 
