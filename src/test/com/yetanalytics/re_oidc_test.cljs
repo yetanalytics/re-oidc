@@ -4,4 +4,4 @@
      [com.yetanalytics.re-oidc :as re-oidc]))
 
 (deftest dummy-test
-  (is false)) ;; <-- TODO: failures hanging chromium?!?
+  (is true))
