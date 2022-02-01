@@ -1,5 +1,7 @@
 # re-oidc
 
+[![CI](https://github.com/yetanalytics/re-oidc/actions/workflows/ci.yml/badge.svg)](https://github.com/yetanalytics/re-oidc/actions/workflows/ci.yml)
+
 A wrapper for [oidc-client-js](https://github.com/IdentityModel/oidc-client-js) providing [OIDC](https://openid.net/specs/openid-connect-core-1_0.html) support for re-frame + reagent applications in cljs.
 
 ## Overview
