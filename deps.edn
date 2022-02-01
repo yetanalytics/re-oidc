@@ -6,12 +6,8 @@
  :paths ["src/lib" "resources"]
  :aliases {:dev {:extra-deps
                  {com.bhauman/figwheel-main {:mvn/version "0.2.15"}
+                  com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
                   day8.re-frame/http-fx {:mvn/version "0.2.4"}}
-                 :extra-paths ["src/dev" "target" "src/test"]}
-           :fig {:extra-deps
-                  {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
-                   com.bhauman/figwheel-main {:mvn/version "0.2.15"}
-                   day8.re-frame/http-fx {:mvn/version "0.2.4"}}
                  :extra-paths ["src/dev" "target" "src/test"]}
            ;; Interactive Demo + dev
            :build {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}

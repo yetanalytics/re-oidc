@@ -79,7 +79,7 @@ To set up a demo Keycloak IDP at localhost:8080.
 
 To launch an interactive development environment run:
 
-    clojure -A:fig:build
+    clojure -A:dev:build
 
 Or in EMACS just use `cider-jack-in-cljs` and the included `.dir-locals.el` file will add the correct alias.
 

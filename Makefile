@@ -7,4 +7,4 @@ keycloak-demo:
 	cd keycloak; docker compose up
 
 test:
-	clojure -Mfig:test
+	clojure -M:dev:test
