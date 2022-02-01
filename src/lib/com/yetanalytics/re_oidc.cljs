@@ -90,12 +90,27 @@
 (re-frame/reg-fx
  ::get-user-fx
  (fn [{:keys [on-success
-              on-failure]}]
+              on-failure
+              auto-login]
+       :or {auto-login false}}]
    (let [on-failure (or on-failure
                         [::add-error ::get-user-fx])]
      (-> (get-user-manager)
          .getUser
-         (u/handle-promise on-success on-failure)))))
+         (u/handle-promise
+          (cond-> (fn [?user]
+                    (if-let [logged-in-user (and ?user
+                                                 (not
+                                                  (some-> ?user
+                                                          .-expires_at
+                                                          u/expired?))
+                                                 ?user)]
+                      (re-frame/dispatch [::user-loaded logged-in-user])
+                      (when auto-login
+                        (re-frame/dispatch [::login]))))
+            on-success
+            (juxt (u/cb-fn-or-dispatch on-success)))
+          on-failure)))))
 
 (re-frame/reg-fx
  ::signin-redirect-fx
@@ -140,57 +155,72 @@
          .signoutRedirectCallback
          (u/handle-promise on-success on-failure)))))
 
+(defn add-error
+  "Add a thrown error to the list in the db"
+  [db [_ handler-id js-error]]
+  (update db
+          :errors
+          (fnil conj [])
+          (u/js-error->clj
+           handler-id
+           js-error)))
+
 (re-frame/reg-event-db
  ::add-error
- (fn [db [_ handler-id js-error]]
-   (update db
-           :errors
-           (fnil conj [])
-           (u/js-error->clj
-            handler-id
-            js-error))))
+ add-error)
+
+(defn user-loaded
+  "Load a user object from js into the db and set status to :loaded"
+  [db [_ js-user]]
+  (let [id-token (.-id_token js-user)
+        access-token (.-access_token js-user)
+        expires-at (.-expires_at js-user)
+        refresh-token (.-refresh_token js-user)
+        token-type (.-token_type js-user)
+        state (.-state js-user)
+        session-state (.-session_state js-user)
+        scope (.-scope js-user)
+        profile (js->clj (.-profile js-user))]
+    (assoc db
+           ::status :loaded
+           ::user
+           {:id-token id-token
+            :access-token access-token
+            :refresh-token refresh-token
+            :expires-at expires-at
+            :token-type token-type
+            :state state
+            :scope scope
+            :session-state session-state
+            :profile profile})))
 
 (re-frame/reg-event-db
  ::user-loaded
- (fn [db [_ js-user]]
-   (let [id-token (.-id_token js-user)
-         access-token (.-access_token js-user)
-         expires-at (.-expires_at js-user)
-         refresh-token (.-refresh_token js-user)
-         token-type (.-token_type js-user)
-         state (.-state js-user)
-         session-state (.-session_state js-user)
-         scope (.-scope js-user)
-         profile (js->clj (.-profile js-user))]
-     (assoc db
-            ::status :loaded
-            ::user
-            {:id-token id-token
-             :access-token access-token
-             :refresh-token refresh-token
-             :expires-at expires-at
-             :token-type token-type
-             :state state
-             :scope scope
-             :session-state session-state
-             :profile profile}))))
+ user-loaded)
+
+(defn user-unloaded
+  "Remove any present user and set status to :unloaded"
+  [db _]
+  (-> db
+      (dissoc ::user)
+      (assoc ::status :unloaded)))
 
 (re-frame/reg-event-db
  ::user-unloaded
- (fn [db _]
-   (-> db
-       (dissoc ::user)
-       (assoc ::status :unloaded))))
+ user-unloaded)
+
+;; TODO: Possibly more behavior on errors
+(def dispatch-unloaded
+  (constantly
+   {:fx [[:dispatch [::user-unloaded]]]}))
 
 (re-frame/reg-event-fx
  ::silent-renew-error
- (fn [_ [_ err]]
-   {:fx [[:dispatch [::user-unloaded]]]}))
+ dispatch-unloaded)
 
 (re-frame/reg-event-fx
  ::access-token-expired
- (fn [_ [_ err]]
-   {:fx [[:dispatch [::user-unloaded]]]}))
+ dispatch-unloaded)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "Public" API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -199,101 +229,107 @@
 ;; (maybe) Pre-initialization events
 
 ;; Add login redirect callback state, usually from routing
+
+(defn login-callback
+  "Process OIDC login callback data from a query string.
+  Requires configuration map for success/failure handlers and a query string."
+  [{{?status ::status
+     :as db} :db} [_
+                   {:keys [on-login-success
+                           on-login-failure]}
+                   qstring]]
+  (cond
+    ;; Pre-init
+    (nil? ?status) {:db (assoc db
+                               ::callback :login
+                               ::login-query-string qstring)}
+    (#{:init
+       :unloaded}
+     ?status) {:db db
+               :fx [[::signin-redirect-callback-fx
+                     {:query-string qstring
+                      :on-success on-login-success
+                      :on-failure on-login-failure}]]}
+    :else
+    (do
+      (.warn js/console
+             "::re-oidc/login-callback called with unknown status"
+             (name ?status))
+      {})))
+
 (re-frame/reg-event-fx
  ::login-callback
- (fn [{{?status ::status
-        :as db} :db} [_
-                      {:keys [on-login-success
-                              on-login-failure]}
-                      qstring]]
-   (cond
-     ;; Pre-init
-     (nil? ?status) {:db (assoc db
-                                ::callback :login
-                                ::login-query-string qstring)}
-     (#{:init
-        :unloaded}
-      ?status) {:db db
-                :fx [[::signin-redirect-callback-fx
-                      {:query-string qstring
-                       :on-success on-login-success
-                       :on-failure on-login-failure}]]}
-     :else
-     (do
-       (.warn js/console
-              "::re-oidc/login-callback called with unknown status"
-              (name ?status))
-       {}))))
+ login-callback)
 
 ;; Add logout redirect callback state, usually from routing
+(defn logout-callback
+  "Process OIDC logout callback"
+  [{{?status ::status
+     :as db} :db} [_
+                   {:keys [on-logout-success
+                           on-logout-failure]}]]
+  (case ?status
+    ;; Pre-init
+    nil {:db (assoc db
+                    ::callback :logout)}
+    :init {:db db
+           :fx [[::signout-redirect-callback-fx
+                 {:on-success on-logout-success
+                  :on-failure on-logout-failure}]]}
+    (do
+      (.warn js/console
+             "::re-oidc/logout-callback called with unknown status"
+             (name ?status))
+      {})))
+
 (re-frame/reg-event-fx
  ::logout-callback
- (fn [{{?status ::status
-        :as db} :db} [_
-                      {:keys [on-logout-success
-                              on-logout-failure]}]]
-   (case ?status
-     ;; Pre-init
-     nil {:db (assoc db
-                     ::callback :logout)}
-     :init {:db db
-            :fx [[::signout-redirect-callback-fx
-                  {:on-success on-logout-success
-                   :on-failure on-logout-failure}]]}
-     (do
-       (.warn js/console
-              "::re-oidc/logout-callback called with unknown status"
-              (name ?status))
-       {}))))
+ logout-callback)
 
 ;; Initialization
 ;; Sets up the OIDC client from config and queues login/logout callback
 ;; Or if not on a callback, attempts to get the user from storage
+
+(defn init
+  "Initialize the OIDC client. If there are callbacks waiting for processing
+  execute them, otherwise get the user from storage (if possible)"
+  [{{status ::status
+     ?callback ::callback
+     ?qstring ::login-query-string
+     :as db} :db} [_ {:keys [oidc-config
+                             auto-login
+                             on-login-success
+                             on-login-failure
+                             on-logout-success
+                             on-logout-failure
+                             on-get-user-success
+                             on-get-user-failure]
+                      :or {auto-login false}}]]
+  (if status
+    {}
+    {:db (-> db
+             (assoc ::status :init)
+             (dissoc ::callback
+                     ::login-query-string))
+     :fx [[::init-fx
+           {:config oidc-config}]
+          (case ?callback
+            :login [::signin-redirect-callback-fx
+                    {:query-string ?qstring
+                     :on-success on-login-success
+                     :on-failure on-login-failure}]
+            :logout [::signout-redirect-callback-fx
+                     {:on-success on-logout-success
+                      :on-failure on-logout-failure}]
+            [::get-user-fx
+             ;; We need to set the user, if present, no matter what
+             {:auto-login auto-login
+              :on-success on-get-user-success
+              :on-failure on-get-user-failure}])]}))
+
 (re-frame/reg-event-fx
  ::init
- (fn [{{:keys [status]
-        ?callback ::callback
-        ?qstring ::login-query-string
-        :as db} :db} [_ {:keys [oidc-config
-                                auto-login
-                                on-login-success
-                                on-login-failure
-                                on-logout-success
-                                on-logout-failure
-                                on-get-user-success
-                                on-get-user-failure]}]]
-   (if status
-     {}
-     {:db (-> db
-              (assoc ::status :init)
-              (dissoc ::callback
-                      ::login-query-string))
-      :fx [[::init-fx
-            {:config oidc-config}]
-           (case ?callback
-             :login [::signin-redirect-callback-fx
-                     {:query-string ?qstring
-                      :on-success on-login-success
-                      :on-failure on-login-failure}]
-             :logout [::signout-redirect-callback-fx
-                      {:on-success on-logout-success
-                       :on-failure on-logout-failure}]
-             [::get-user-fx
-              ;; We need to set the user, if present, no matter what
-              {:on-success
-               (cond-> (fn [?user]
-                         (if-let [logged-in-user (and ?user
-                                                      (not
-                                                       (some-> ?user
-                                                               .-expires_at
-                                                               u/expired?))
-                                                      ?user)]
-                           (re-frame/dispatch [::user-loaded logged-in-user])
-                           (when auto-login
-                             (re-frame/dispatch [::login]))))
-                 on-get-user-success
-                 (juxt (u/cb-fn-or-dispatch on-get-user-success)))
-               :on-failure on-get-user-failure}])]})))
+ init)
 
 ;; Post-initialization
 
