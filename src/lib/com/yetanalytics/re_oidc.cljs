@@ -2,7 +2,8 @@
   (:require [cljsjs.oidc-client :refer [UserManager Log]]
             [re-frame.core :as re-frame]
             [clojure.spec.alpha :as s :include-macros true]
-            [com.yetanalytics.re-oidc.user :as user]))
+            [com.yetanalytics.re-oidc.user :as user]
+            [com.yetanalytics.re-oidc.util :as u]))
 
 ;; OIDC lib logging can be enabled:
 
@@ -37,35 +38,30 @@
 (defonce user-manager
   (atom nil))
 
-(defn- dispatch-cb
-  [qvec]
-  (fn [& args]
-    (re-frame/dispatch (into qvec args))))
-
 (defn reg-events!
   "Register event callbacks to re-frame on the OIDC UserManager"
   [^UserManager user-manager]
   (doto user-manager.events
     (.addUserLoaded
-     (dispatch-cb [::user-loaded]))
+     (u/dispatch-cb [::user-loaded]))
     (.addUserUnloaded
-     (dispatch-cb [::user-unloaded]))
+     (u/dispatch-cb [::user-unloaded]))
     ;; We set automaticSilentRenew to true and these are done for us
     #_(.addAccessTokenExpiring
-     (dispatch-cb [::access-token-expiring]))
+     (u/dispatch-cb [::access-token-expiring]))
     (.addAccessTokenExpired
-     (dispatch-cb [::access-token-expired]))
+     (u/dispatch-cb [::access-token-expired]))
     (.addSilentRenewError
-     (dispatch-cb [::silent-renew-error]))
+     (u/dispatch-cb [::silent-renew-error]))
     ;; session monitoring requires an iframe
     ;; this breaks Figwheel and makes dev hard
     ;; TODO: enable on-demand for those with iframe-friendly idp settings
     #_(.addUserSignedIn
-     (dispatch-cb [::user-signed-in]))
+     (u/dispatch-cb [::user-signed-in]))
     #_(.addUserSignedOut
-     (dispatch-cb [::user-signed-out]))
+     (u/dispatch-cb [::user-signed-out]))
     #_(.addUserSessionChanged
-     (dispatch-cb [::user-session-changed]))))
+     (u/dispatch-cb [::user-session-changed]))))
 
 (defn init!
   "Initialize the OIDC UserManager from config. Idempotent"
@@ -74,19 +70,6 @@
     user-manager
     (doto (UserManager. (clj->js config))
       reg-events!)))
-
-(defn- cb-fn-or-dispatch
-  [x]
-  (cond
-    (vector? x) (dispatch-cb x)
-    (fn? x) x))
-
-(defn- handle-promise
-  "Handle a promise result from the lib"
-  [p & [?on-success ?on-failure]]
-  (cond-> p
-    ?on-failure (.catch (cb-fn-or-dispatch ?on-failure))
-    ?on-success (.then (cb-fn-or-dispatch ?on-success))))
 
 (re-frame/reg-fx
  ::init-fx
@@ -112,7 +95,7 @@
                         [::add-error ::get-user-fx])]
      (-> (get-user-manager)
          .getUser
-         (handle-promise on-success on-failure)))))
+         (u/handle-promise on-success on-failure)))))
 
 (re-frame/reg-fx
  ::signin-redirect-fx
@@ -122,7 +105,7 @@
                         [::add-error ::signin-redirect-fx])]
      (-> (get-user-manager)
          .signinRedirect
-         (handle-promise on-success on-failure)))))
+         (u/handle-promise on-success on-failure)))))
 
 (re-frame/reg-fx
  ::signin-redirect-callback-fx
@@ -134,7 +117,7 @@
          um (get-user-manager)]
      (-> um
          (.signinRedirectCallback query-string)
-         (handle-promise on-success on-failure)
+         (u/handle-promise on-success on-failure)
          (.then #(.clearStaleState um))))))
 
 (re-frame/reg-fx
@@ -145,7 +128,7 @@
                         [::add-error ::signout-redirect-fx])]
      (-> (get-user-manager)
          .signoutRedirect
-         (handle-promise on-success on-failure)))))
+         (u/handle-promise on-success on-failure)))))
 
 (re-frame/reg-fx
  ::signout-redirect-callback-fx
@@ -155,15 +138,7 @@
                         [::add-error ::signout-redirect-callback-fx])]
      (-> (get-user-manager)
          .signoutRedirectCallback
-         (handle-promise on-success on-failure)))))
-
-(defn- js-error->clj
-  [handler-id js-error]
-  (let [?exd (ex-data js-error)]
-    (cond-> {:name (.-name js-error)
-             :message (ex-message js-error)
-             :handler handler-id}
-      ?exd (assoc :ex-data ?exd))))
+         (u/handle-promise on-success on-failure)))))
 
 (re-frame/reg-event-db
  ::add-error
@@ -171,7 +146,7 @@
    (update db
            :errors
            (fnil conj [])
-           (js-error->clj
+           (u/js-error->clj
             handler-id
             js-error))))
 
@@ -271,10 +246,6 @@
               (name ?status))
        {}))))
 
-(defn- expired?
-  [expires-at]
-  (< (* expires-at 1000) (.now js/Date)))
-
 ;; Initialization
 ;; Sets up the OIDC client from config and queues login/logout callback
 ;; Or if not on a callback, attempts to get the user from storage
@@ -315,13 +286,13 @@
                                                       (not
                                                        (some-> ?user
                                                                .-expires_at
-                                                               expired?))
+                                                               u/expired?))
                                                       ?user)]
                            (re-frame/dispatch [::user-loaded logged-in-user])
                            (when auto-login
                              (re-frame/dispatch [::login]))))
                  on-get-user-success
-                 (juxt (cb-fn-or-dispatch on-get-user-success)))
+                 (juxt (u/cb-fn-or-dispatch on-get-user-success)))
                :on-failure on-get-user-failure}])]})))
 
 ;; Post-initialization
