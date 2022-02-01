@@ -85,6 +85,17 @@ Or in EMACS just use `cider-jack-in-cljs` and the included `.dir-locals.el` file
 
 When the figwheel browser opens, you'll see a printed out clojure map expressing the state of the DB. Click to log in with the username `dev_user` and password `changeme123`. You should be redirected back to the demo, and you will see login information populate the app db.
 
+## Testing
+
+The lib uses browser-based tests. Please ensure that you have `chromium` on your `$PATH`. For instance on a Mac you can install it with:
+
+    brew install chromium
+
+To run the tests, run:
+
+    make test
+
+
 ## License
 
 Copyright © 2022 Yet Analytics, Inc.
