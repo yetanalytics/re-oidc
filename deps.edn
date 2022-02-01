@@ -18,5 +18,4 @@
            ;; Advance-compile and host
            :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev" "-s"]}
            ;; Run tests
-           :test  {:main-opts ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" "com.test-runner"]}
-           :test-ci {:main-opts ["-m" "figwheel.main" "-co" "ci.cljs.edn" "-m" "com.test-runner"]}}}
+           :test  {:main-opts ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" "com.test-runner"]}}}

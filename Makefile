@@ -1,4 +1,4 @@
-.phony: clean, keycloak-demo, test, ci
+.phony: clean, keycloak-demo, test
 
 clean:
 	rm -rf target
@@ -8,6 +8,3 @@ keycloak-demo:
 
 test:
 	clojure -Mfig:test
-
-ci:
-	clojure -Mfig:test-ci
