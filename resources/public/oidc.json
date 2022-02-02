@@ -1,9 +1,9 @@
 {
     "authority": "http://0.0.0.0:8080/auth/realms/test",
     "client_id": "testapp_public",
-    "redirect_uri": "http://localhost:9500/#callback.login",
+    "redirect_uri": "http://localhost:9500/login-callback",
     "response_type": "code",
-    "post_logout_redirect_uri": "http://localhost:9500/#callback.logout",
+    "post_logout_redirect_uri": "http://localhost:9500/logout-callback",
     "scope": "openid profile",
     "automaticSilentRenew": true,
     "monitorSession": false,

@@ -11,7 +11,7 @@
  ;; Server Ring Handler (optional) https://figwheel.org/docs/ring-handler.html
  ;; If you want to embed a ring handler into the figwheel server, this
  ;; is for simple ring servers
- ;; :ring-handler hello_world.server/handler
+ :ring-handler com.yetanalytics.re-oidc.demo-server/handler
 
  ;; To be able to open files in your editor from the heads up display
  ;; you will need to put a script on your path. This script will have

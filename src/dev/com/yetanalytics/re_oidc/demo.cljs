@@ -114,16 +114,15 @@
 (defn process-callbacks!
   "Detect post login/logout callbacks and issue route dispatch to re-oidc."
   [& _]
-  (let [hsh js/window.location.hash]
-    (case hsh
-      "#callback.login" (re-frame/dispatch
-                         [::re-oidc/login-callback
-                          static-config
-                          js/window.location.search])
-      "#callback.logout" (re-frame/dispatch
-                          [::re-oidc/logout-callback
-                           static-config])
-      nil)))
+  (case js/window.location.pathname
+    "/login-callback" (re-frame/dispatch
+                       [::re-oidc/login-callback
+                        static-config
+                        js/window.location.search])
+    "/logout-callback" (re-frame/dispatch
+                        [::re-oidc/logout-callback
+                         static-config])
+    nil))
 
 (defn hello-world []
   [:div
