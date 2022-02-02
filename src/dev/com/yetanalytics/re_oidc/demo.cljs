@@ -9,7 +9,9 @@
    [com.yetanalytics.re-oidc :as re-oidc]
    [goog.events :as events]
    [clojure.pprint :as pp]
-   [ajax.core :as ajax]))
+   [ajax.core :as ajax]
+   [goog.string :refer [format]]
+   goog.string.format))
 
 (defn- push-state
   "Push history state to clean up on login/logout"
@@ -60,6 +62,36 @@
    (.error js/console "Failed to fetch OIDC config, status:" status)
    {}))
 
+;; Attempt a call to the API server when logged in
+(re-frame/reg-event-fx
+ ::echo-token!
+ (fn [{{status ::re-oidc/status
+        :as db} :db} _]
+   (if (= :loaded status)
+     (let [{{:keys [access-token]} ::re-oidc/user} db]
+       {:http-xhrio {:uri "http://0.0.0.0:8081/api"
+                     :method :get
+                     :headers {"Authorization" (format "Bearer %s" access-token)}
+                     :response-format (ajax/json-response-format
+                                       {:keywords? true})
+                     :on-success [::recv-token-echo]
+                     :on-failure [::fail-token-echo]}})
+     (do
+       (.error js/console "Can't call API server if not logged in!")
+       {}))))
+
+;; receive token echo from api
+(re-frame/reg-event-db
+ ::recv-token-echo
+ (fn [db [_ token-echo]]
+   (assoc db ::token-echo token-echo)))
+
+(re-frame/reg-event-fx
+ ::fail-token-echo
+ (fn [ctx [_ {:keys [status]}]]
+   (.error js/console "Failed to get token echo from api server, status:" status)
+   {}))
+
 ;; Compose init events for the demo db & getting remote config
 (re-frame/reg-event-fx
  ::init!
@@ -82,16 +114,15 @@
 (defn process-callbacks!
   "Detect post login/logout callbacks and issue route dispatch to re-oidc."
   [& _]
-  (let [hsh js/window.location.hash]
-    (case hsh
-      "#callback.login" (re-frame/dispatch
-                         [::re-oidc/login-callback
-                          static-config
-                          js/window.location.search])
-      "#callback.logout" (re-frame/dispatch
-                          [::re-oidc/logout-callback
-                           static-config])
-      nil)))
+  (case js/window.location.pathname
+    "/login-callback" (re-frame/dispatch
+                       [::re-oidc/login-callback
+                        static-config
+                        js/window.location.search])
+    "/logout-callback" (re-frame/dispatch
+                        [::re-oidc/logout-callback
+                         static-config])
+    nil))
 
 (defn hello-world []
   [:div
@@ -104,14 +135,22 @@
    ;; Since the login/logout actions must run after init,
    ;; you can use the ::re-oidc/status key for things like loading
    (case @(re-frame/subscribe [::re-oidc/status])
-     nil [:button "Loading..."]
-     :loaded [:button
-              {:on-click #(re-frame/dispatch [::re-oidc/logout])}
-              "Log out"]
+     nil
+     [:div
+      [:button "Loading..."]]
+     :loaded
+     [:div
+      [:button
+       {:on-click #(re-frame/dispatch [::echo-token!])}
+       "Echo Token"]
+      [:button
+       {:on-click #(re-frame/dispatch [::re-oidc/logout])}
+       "Log out"]]
      ;; :init/:unloaded
-     [:button
-      {:on-click #(re-frame/dispatch [::re-oidc/login])}
-      "Log in"])])
+     [:div
+      [:button
+       {:on-click #(re-frame/dispatch [::re-oidc/login])}
+       "Log in"]])])
 
 (defn mount [el]
   (rdom/render [hello-world] el))
