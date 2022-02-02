@@ -15,4 +15,14 @@
            ;; Advance-compile and host
            :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev" "-s"]}
            ;; Run tests
-           :test  {:main-opts ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" "com.test-runner"]}}}
+           :test  {:main-opts ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" "com.test-runner"]}
+           ;; Launch a demo API server that decodes claims
+           :api-demo
+           {:replace-paths ["src/dev"]
+            :replace-deps
+            {com.yetanalytics/pedestal-oidc {:mvn/version "0.0.2"}
+             io.pedestal/pedestal.jetty     {:mvn/version "0.5.9"}
+             ch.qos.logback/logback-classic
+             {:mvn/version "1.2.9"
+              :exclusions  [org.slf4j/slf4j-api]}}
+            :exec-fn       com.yetanalytics.pedestal-oidc.server/run-dev}}}
