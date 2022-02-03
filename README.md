@@ -96,7 +96,7 @@ Or in EMACS just use `cider-jack-in-cljs` and the included `.dir-locals.el` file
 
 When the figwheel browser opens, you'll see a printed out clojure map expressing the state of the DB. Click to log in with the username `dev_user` and password `changeme123`. You should be redirected back to the demo, and you will see login information populate the app db.
 
-If you've also run the API demo server beforehand, you can click "Echo Token" to send it the front end access token. The server will decode it an echo it back, where you can see it stored at the `:com.yetanalytics.re-oidc.demo/token-echo` key in the DB.
+If you've also run the API demo server beforehand, you can click "Echo Token" to send it the front end access token. The server will decode it and echo it back, where you can see it stored at the `:com.yetanalytics.re-oidc.demo/token-echo` key in the DB.
 
 ## Trying Advanced Compilation
 
