@@ -20,7 +20,7 @@
            :api-demo
            {:replace-paths ["src/dev"]
             :replace-deps
-            {com.yetanalytics/pedestal-oidc {:mvn/version "0.0.2"}
+            {com.yetanalytics/pedestal-oidc {:mvn/version "0.0.3"}
              io.pedestal/pedestal.jetty     {:mvn/version "0.5.9"}
              ch.qos.logback/logback-classic
              {:mvn/version "1.2.9"
