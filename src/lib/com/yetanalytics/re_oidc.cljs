@@ -1,5 +1,5 @@
 (ns com.yetanalytics.re-oidc
-  (:require [cljsjs.oidc-client :refer [UserManager Log]]
+  (:require [cljsjs.oidc-client :refer [UserManager Log WebStorageStateStore]]
             [re-frame.core :as re-frame]
             [clojure.spec.alpha :as s :include-macros true]
             [com.yetanalytics.re-oidc.user :as user]
@@ -73,8 +73,33 @@
 
 (re-frame/reg-fx
  ::init-fx
- (fn [{:keys [config]}]
-   (swap! user-manager init! config)))
+ (fn [{:keys [config
+              state-store
+              user-store]
+       :or {state-store :local-storage
+            user-store :session-storage}}]
+   (swap! user-manager
+          init!
+          (assoc
+           config
+           "stateStore"
+           (new WebStorageStateStore
+                #js {:store (case state-store
+                              :local-storage
+                              js/window.localStorage
+                              :session-storage
+                              js/window.sessionStorage
+                              ;; custom
+                              state-store)})
+           "userStore"
+           (new WebStorageStateStore
+                #js {:store (case user-store
+                              :local-storage
+                              js/window.localStorage
+                              :session-storage
+                              js/window.sessionStorage
+                              ;; custom
+                              user-store)})))))
 
 (defn- throw-not-initialized!
   []
@@ -303,8 +328,12 @@
                              on-logout-success
                              on-logout-failure
                              on-get-user-success
-                             on-get-user-failure]
-                      :or {auto-login false}}]]
+                             on-get-user-failure
+                             state-store
+                             user-store]
+                      :or {auto-login false
+                           state-store :local-storage
+                           user-store :session-storage}}]]
   (if status
     {}
     {:db (-> db
@@ -312,7 +341,9 @@
              (dissoc ::callback
                      ::login-query-string))
      :fx [[::init-fx
-           {:config oidc-config}]
+           {:config oidc-config
+            :state-store state-store
+            :user-store user-store}]
           (case ?callback
             :login [::signin-redirect-callback-fx
                     {:query-string ?qstring

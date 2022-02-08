@@ -130,7 +130,10 @@
             [nil nil]))))
   (testing "with login callback"
     (is (= {:db {::re-oidc/status :init},
-            :fx [[::re-oidc/init-fx {:config {}}]
+            :fx [[::re-oidc/init-fx
+                  {:config {}
+                   :state-store :local-storage
+                   :user-store :session-storage}]
                  [::re-oidc/signin-redirect-callback-fx
                   {:query-string "?foo=bar",
                    :on-success [::success],
@@ -144,7 +147,10 @@
               :on-login-failure [::failure]}]))))
   (testing "with logout callback"
     (is (= {:db {::re-oidc/status :init},
-            :fx [[::re-oidc/init-fx {:config {}}]
+            :fx [[::re-oidc/init-fx
+                  {:config {}
+                   :state-store :local-storage
+                   :user-store :session-storage}]
                  [::re-oidc/signout-redirect-callback-fx
                   {:on-success [::success],
                    :on-failure [::failure]}]]}
@@ -156,7 +162,10 @@
               :on-logout-failure [::failure]}]))))
   (testing "with no callback"
     (is (= {:db {::re-oidc/status :init},
-            :fx [[::re-oidc/init-fx {:config {}}]
+            :fx [[::re-oidc/init-fx
+                  {:config {}
+                   :state-store :local-storage
+                   :user-store :session-storage}]
                  [::re-oidc/get-user-fx
                   {:auto-login false,
                    :on-success [::success],
