@@ -52,6 +52,7 @@
           ;; Initialize OIDC from the remote config
           [::re-oidc/init
            (assoc static-config
+                  :user-store :local-storage
                   ;; These config options are passed directly to the OIDC client
                   :oidc-config
                   config)]]]}))
