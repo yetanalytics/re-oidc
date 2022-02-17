@@ -4,7 +4,7 @@
     "redirect_uri": "http://localhost:9500/login-callback",
     "response_type": "code",
     "post_logout_redirect_uri": "http://localhost:9500/logout-callback",
-    "scope": "openid profile",
+    "scope": "openid profile all",
     "automaticSilentRenew": true,
     "monitorSession": false,
     "filterProtocolClaims": false
