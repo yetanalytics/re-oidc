@@ -160,6 +160,33 @@
    (.error js/console "Failed to post statement, status:" status)
    {}))
 
+(re-frame/reg-event-fx
+ ::get-admin-accounts!
+ (fn [{{status ::re-oidc/status
+        :as db} :db} _]
+   (if (= :loaded status)
+     (let [{{:keys [access-token]} ::re-oidc/user} db]
+       {:http-xhrio {:uri "http://0.0.0.0:8081/admin/account"
+                     :method :get
+                     :headers {"Authorization" (format "Bearer %s" access-token)}
+                     :response-format (ajax/json-response-format
+                                       {:keywords? true})
+                     :on-success [::recv-get-admin-accounts]
+                     :on-failure [::fail-get-admin-accounts]}})
+     (do
+       (.error js/console "Can't call admin api if not logged in!")
+       {}))))
+
+(re-frame/reg-event-db
+ ::recv-get-admin-accounts
+ (fn [db [_ admin-accounts-response]]
+   (assoc db :admin-accounts-response admin-accounts-response)))
+
+(re-frame/reg-event-fx
+ ::fail-get-admin-accounts
+ (fn [ctx [_ {:keys [status]}]]
+   (.error js/console "Failed to get admins, status:" status)
+   {}))
 
 ;; Compose init events for the demo db & getting remote config
 (re-frame/reg-event-fx
@@ -214,6 +241,8 @@
         "Get Statements"]
        [:button {:on-click #(re-frame/dispatch [::post-statement!])}
         "Post Statement"]
+       [:button {:on-click #(re-frame/dispatch [::get-admin-accounts!])}
+        "Get Admin Accounts"]
        ]
 
       [:button
