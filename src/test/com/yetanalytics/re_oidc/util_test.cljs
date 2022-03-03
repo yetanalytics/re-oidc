@@ -4,7 +4,9 @@
    [com.yetanalytics.re-oidc.util :refer [dispatch-cb
                                           cb-fn-or-dispatch
                                           js-error->clj
-                                          expired?]]
+                                          expired?
+                                          absolve-uri
+                                          absolve-redirect-uris]]
    [re-frame.core :as re-frame]))
 
 (deftest dispatch-cb-test
@@ -59,3 +61,24 @@
            .getTime
            (quot 1000)
            (+ 86400)))))))
+
+(deftest absolve-uri-test
+  (testing "Converts relative to absolute"
+    (is
+     (= "http://localhost:9500/foo"
+        (absolve-uri "/foo")))))
+
+(deftest absolve-redirect-uris-test
+  (testing "Converts relative uri keys (kw or string) to absolute"
+    (is
+     (= {:redirect_uri "http://localhost:9500/foo"
+         "redirect_uri" "http://localhost:9500/bar"
+         :post_logout_redirect_uri "http://localhost:9500/baz"
+         "post_logout_redirect_uri" "http://localhost:9500/quxx"
+         :something_else "/fizz"}
+        (absolve-redirect-uris
+         {:redirect_uri "/foo"
+          "redirect_uri" "/bar"
+          :post_logout_redirect_uri "/baz"
+          "post_logout_redirect_uri" "/quxx"
+          :something_else "/fizz"})))))

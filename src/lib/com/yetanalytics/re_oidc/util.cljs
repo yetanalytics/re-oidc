@@ -1,5 +1,6 @@
 (ns com.yetanalytics.re-oidc.util
-  (:require [re-frame.core :as re-frame]))
+  (:require [clojure.string :as cs]
+            [re-frame.core :as re-frame]))
 
 (defn dispatch-cb
   [qvec]
@@ -30,3 +31,30 @@
 (defn expired?
   [expires-at]
   (< (* expires-at 1000) (.now js/Date)))
+
+(defn absolve-uri
+  "Convert a relative path to an absolute URI string based on browser location."
+  [uri]
+  (if (and uri
+           (cs/starts-with? uri "/"))
+    (.-href (new js/URL uri js/window.location))
+    uri))
+
+(def redirect-uri-keys
+  #{:redirect_uri
+    "redirect_uri"
+    :post_logout_redirect_uri
+    "post_logout_redirect_uri"})
+
+(defn absolve-redirect-uris
+  "Convert relative redirect URIs to absolute based on browser location."
+  [oidc-config]
+  (reduce-kv
+   (fn [m k v]
+     (assoc m
+            k
+            (if (redirect-uri-keys k)
+              (absolve-uri v)
+              v)))
+   {}
+   oidc-config))
