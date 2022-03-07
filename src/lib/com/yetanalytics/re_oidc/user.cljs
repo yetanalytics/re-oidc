@@ -26,14 +26,14 @@
                 :into []
                 :gen-max 4)))))
 
-(s/def ::refresh-token string?)
+(s/def ::refresh-token (s/nilable string?))
 (s/def ::expires-at pos-int?)
 (s/def ::state (s/nilable string?))
 (s/def ::scope string?)
 (s/def ::id-token string?)
 (s/def ::access-token string?)
 (s/def ::token-type #{"Bearer"})
-(s/def ::session-state string?)
+(s/def ::session-state (s/nilable string?))
 (s/def ::profile
   (s/map-of string?
             ::any-json))
