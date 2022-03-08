@@ -330,10 +330,12 @@
                              on-get-user-success
                              on-get-user-failure
                              state-store
-                             user-store]
+                             user-store
+                             redirect-uri-absolution]
                       :or {auto-login false
                            state-store :local-storage
-                           user-store :session-storage}}]]
+                           user-store :session-storage
+                           redirect-uri-absolution false}}]]
   (if status
     {}
     {:db (-> db
@@ -341,7 +343,9 @@
              (dissoc ::callback
                      ::login-query-string))
      :fx [[::init-fx
-           {:config oidc-config
+           {:config (cond-> oidc-config
+                      redirect-uri-absolution
+                      u/absolve-redirect-uris)
             :state-store state-store
             :user-store user-store}]
           (case ?callback
