@@ -102,7 +102,7 @@
         :as db} :db} _]
    (if (= :loaded status)
      (let [{{:keys [access-token]} ::re-oidc/user} db]
-       {:http-xhrio {:uri "http://0.0.0.0:8081/xapi/statements"
+       {:http-xhrio {:uri "http://0.0.0.0:8080/xapi/statements"
                      :method :get
                      :headers {"X-Experience-Api-Version" "1.0.3"
                                "Authorization" (format "Bearer %s" access-token)}
@@ -131,7 +131,7 @@
         :as db} :db} _]
    (if (= :loaded status)
      (let [{{:keys [access-token]} ::re-oidc/user} db]
-       {:http-xhrio {:uri "http://0.0.0.0:8081/xapi/statements"
+       {:http-xhrio {:uri "http://0.0.0.0:8080/xapi/statements"
                      :method :post
                      :headers {"Content-Type" "application/json"
                                "X-Experience-Api-Version" "1.0.3"
@@ -183,15 +183,11 @@
 (defn process-callbacks!
   "Detect post login/logout callbacks and issue route dispatch to re-oidc."
   [& _]
-  (case js/window.location.pathname
-    "/login-callback" (re-frame/dispatch
-                       [::re-oidc/login-callback
-                        static-config
-                        js/window.location.search])
-    "/logout-callback" (re-frame/dispatch
-                        [::re-oidc/logout-callback
-                         static-config])
-    nil))
+  (when-let [search (not-empty js/window.location.search)]
+    (re-frame/dispatch
+     [::re-oidc/login-callback
+      static-config
+      search])))
 
 (defn hello-world []
   [:div
