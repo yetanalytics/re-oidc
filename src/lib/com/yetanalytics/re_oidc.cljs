@@ -40,12 +40,18 @@
 
 (defn reg-events!
   "Register event callbacks to re-frame on the OIDC UserManager"
-  [^UserManager user-manager]
+  [^UserManager user-manager
+   {:keys [on-user-loaded
+           on-user-unloaded]}]
   (doto user-manager.events
     (.addUserLoaded
-     (u/dispatch-cb [::user-loaded]))
+     (cond-> (u/dispatch-cb [::user-loaded])
+       on-user-loaded
+       (juxt on-user-loaded)))
     (.addUserUnloaded
-     (u/dispatch-cb [::user-unloaded]))
+     (cond-> (u/dispatch-cb [::user-unloaded])
+       on-user-unloaded
+       (juxt on-user-unloaded)))
     ;; We set automaticSilentRenew to true and these are done for us
     #_(.addAccessTokenExpiring
      (u/dispatch-cb [::access-token-expiring]))
@@ -64,12 +70,12 @@
      (u/dispatch-cb [::user-session-changed]))))
 
 (defn init!
-  "Initialize the OIDC UserManager from config. Idempotent"
-  [user-manager config]
+  "Initialize the OIDC UserManager from config + calllbacks. Idempotent"
+  [user-manager config lifecycle-callbacks]
   (if user-manager
     user-manager
     (doto (UserManager. (clj->js config))
-      reg-events!)))
+      (reg-events! lifecycle-callbacks))))
 
 (re-frame/reg-fx
  ::init-fx
@@ -77,7 +83,8 @@
               state-store
               user-store]
        :or {state-store :local-storage
-            user-store :session-storage}}]
+            user-store :session-storage}
+       :as init-input}]
    (swap! user-manager
           init!
           (assoc
@@ -99,7 +106,10 @@
                               :session-storage
                               js/window.sessionStorage
                               ;; custom
-                              user-store)})))))
+                              user-store)}))
+          (select-keys init-input
+                       [:on-user-loaded
+                        :on-user-unloaded]))))
 
 (defn- throw-not-initialized!
   []
@@ -329,6 +339,8 @@
                              on-logout-failure
                              on-get-user-success
                              on-get-user-failure
+                             on-user-loaded
+                             on-user-unloaded
                              state-store
                              user-store
                              redirect-uri-absolution]
@@ -347,7 +359,9 @@
                       redirect-uri-absolution
                       u/absolve-redirect-uris)
             :state-store state-store
-            :user-store user-store}]
+            :user-store user-store
+            :on-user-loaded on-user-loaded
+            :on-user-unloaded on-user-unloaded}]
           (case ?callback
             :login [::signin-redirect-callback-fx
                     {:query-string ?qstring
