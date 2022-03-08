@@ -133,7 +133,9 @@
             :fx [[::re-oidc/init-fx
                   {:config {}
                    :state-store :local-storage
-                   :user-store :session-storage}]
+                   :user-store :session-storage
+                   :on-user-loaded [::loaded]
+                   :on-user-unloaded [::unloaded]}]
                  [::re-oidc/signin-redirect-callback-fx
                   {:query-string "?foo=bar",
                    :on-success [::success],
@@ -144,13 +146,17 @@
             [nil
              {:oidc-config {}
               :on-login-success [::success]
-              :on-login-failure [::failure]}]))))
+              :on-login-failure [::failure]
+              :on-user-loaded [::loaded]
+              :on-user-unloaded [::unloaded]}]))))
   (testing "with logout callback"
     (is (= {:db {::re-oidc/status :init},
             :fx [[::re-oidc/init-fx
                   {:config {}
                    :state-store :local-storage
-                   :user-store :session-storage}]
+                   :user-store :session-storage
+                   :on-user-loaded [::loaded]
+                   :on-user-unloaded [::unloaded]}]
                  [::re-oidc/signout-redirect-callback-fx
                   {:on-success [::success],
                    :on-failure [::failure]}]]}
@@ -159,20 +165,26 @@
             [nil
              {:oidc-config {}
               :on-logout-success [::success]
-              :on-logout-failure [::failure]}]))))
+              :on-logout-failure [::failure]
+              :on-user-loaded [::loaded]
+              :on-user-unloaded [::unloaded]}]))))
   (testing "with no callback"
     (is (= {:db {::re-oidc/status :init},
             :fx [[::re-oidc/init-fx
                   {:config {}
                    :state-store :local-storage
-                   :user-store :session-storage}]
+                   :user-store :session-storage
+                   :on-user-loaded [::loaded]
+                   :on-user-unloaded [::unloaded]}]
                  [::re-oidc/get-user-fx
-                  {:auto-login false,
-                   :on-success [::success],
+                  {:auto-login false
+                   :on-success [::success]
                    :on-failure [::failure]}]]}
            (init
             {:db {}}
             [nil
              {:oidc-config {}
               :on-get-user-success [::success]
-              :on-get-user-failure [::failure]}])))))
+              :on-get-user-failure [::failure]
+              :on-user-loaded [::loaded]
+              :on-user-unloaded [::unloaded]}])))))
