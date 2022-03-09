@@ -179,7 +179,8 @@
                  [::re-oidc/get-user-fx
                   {:auto-login false
                    :on-success [::success]
-                   :on-failure [::failure]}]]}
+                   :on-failure [::failure]
+                   :on-user-loaded [::loaded]}]]}
            (init
             {:db {}}
             [nil

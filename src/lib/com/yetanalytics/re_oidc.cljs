@@ -126,6 +126,7 @@
  ::get-user-fx
  (fn [{:keys [on-success
               on-failure
+              on-user-loaded
               auto-login]
        :or {auto-login false}}]
    (let [on-failure (or on-failure
@@ -140,7 +141,12 @@
                                                           .-expires_at
                                                           u/expired?))
                                                  ?user)]
-                      (re-frame/dispatch [::user-loaded logged-in-user])
+                      (do
+                        (re-frame/dispatch [::user-loaded logged-in-user])
+                        ;; ensure any custom loaded callback is fired
+                        (when on-user-loaded
+                          ((u/cb-fn-or-dispatch on-user-loaded)
+                           logged-in-user)))
                       (when auto-login
                         (re-frame/dispatch [::login]))))
             on-success
@@ -374,7 +380,8 @@
              ;; We need to set the user, if present, no matter what
              {:auto-login auto-login
               :on-success on-get-user-success
-              :on-failure on-get-user-failure}])]}))
+              :on-failure on-get-user-failure
+              :on-user-loaded on-user-loaded}])]}))
 
 (re-frame/reg-event-fx
  ::init
