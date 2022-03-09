@@ -47,11 +47,11 @@
     (.addUserLoaded
      (cond-> (u/dispatch-cb [::user-loaded])
        on-user-loaded
-       (juxt on-user-loaded)))
+       (juxt (u/cb-fn-or-dispatch on-user-loaded))))
     (.addUserUnloaded
      (cond-> (u/dispatch-cb [::user-unloaded])
        on-user-unloaded
-       (juxt on-user-unloaded)))
+       (juxt (u/cb-fn-or-dispatch on-user-unloaded))))
     ;; We set automaticSilentRenew to true and these are done for us
     #_(.addAccessTokenExpiring
      (u/dispatch-cb [::access-token-expiring]))
