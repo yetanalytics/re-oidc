@@ -22,6 +22,8 @@ Re-oidc requires a map of configuration options:
 | `:on-logout-failure`       | callback | none             | Action to perform after a logout redirect failure                                                       |
 | `:on-get-user-success`     | callback | none             | Action to perform when an active logged-in user is found on init                                        |
 | `:on-get-user-failure`     | callback | none             | Action to perform when an active logged-in user is not found on init                                    |
+| `:on-user-loaded`          | callback | none             | Action to perform any time the user is loaded, on login or refresh                                      |
+| `:on-user-unloaded`        | callback | none             | Action to perform any time the user us unloaded, on logout or refresh failure                           |
 | `:oidc-config`             | map      | none             | The configuration for oidc-client-js as a clojure map.                                                  |
 | `:redirect-uri-absolution` | boolean  | false            | Whether to expand relative redirect URIs to absolute with window.location                               |
 | `:state-store`             | keyword  | :local-storage   | Where `oidc-client-js` keeps the login callback state                                                   |
