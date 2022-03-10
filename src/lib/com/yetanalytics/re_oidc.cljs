@@ -1,9 +1,11 @@
 (ns com.yetanalytics.re-oidc
-  (:require [cljsjs.oidc-client :refer [UserManager Log WebStorageStateStore]]
+  (:require [oidc-client :refer [UserManager Log WebStorageStateStore]]
             [re-frame.core :as re-frame]
             [clojure.spec.alpha :as s :include-macros true]
             [com.yetanalytics.re-oidc.user :as user]
             [com.yetanalytics.re-oidc.util :as u]))
+
+(set! *warn-on-infer* true)
 
 ;; OIDC lib logging can be enabled:
 
@@ -90,23 +92,23 @@
           (assoc
            config
            "stateStore"
-           (new WebStorageStateStore
-                #js {:store (case state-store
-                              :local-storage
-                              js/window.localStorage
-                              :session-storage
-                              js/window.sessionStorage
-                              ;; custom
-                              state-store)})
+           (WebStorageStateStore.
+            #js {:store (case state-store
+                          :local-storage
+                          js/window.localStorage
+                          :session-storage
+                          js/window.sessionStorage
+                          ;; custom
+                          state-store)})
            "userStore"
-           (new WebStorageStateStore
-                #js {:store (case user-store
-                              :local-storage
-                              js/window.localStorage
-                              :session-storage
-                              js/window.sessionStorage
-                              ;; custom
-                              user-store)}))
+           (WebStorageStateStore.
+            #js {:store (case user-store
+                          :local-storage
+                          js/window.localStorage
+                          :session-storage
+                          js/window.sessionStorage
+                          ;; custom
+                          user-store)}))
           (select-keys init-input
                        [:on-user-loaded
                         :on-user-unloaded]))))
@@ -118,9 +120,15 @@
 
 (defn- get-user-manager
   []
-  (if-some [user-manager @user-manager]
+  (if-some [^js/Oidc.UserManager user-manager @user-manager]
     user-manager
     (throw-not-initialized!)))
+
+(defn- user-expired?
+  [^js/User user]
+  (-> user
+      .-expires_at
+      u/expired?))
 
 (re-frame/reg-fx
  ::get-user-fx
@@ -137,9 +145,7 @@
           (cond-> (fn [?user]
                     (if-let [logged-in-user (and ?user
                                                  (not
-                                                  (some-> ?user
-                                                          .-expires_at
-                                                          u/expired?))
+                                                  (user-expired? ?user))
                                                  ?user)]
                       (do
                         (re-frame/dispatch [::user-loaded logged-in-user])
