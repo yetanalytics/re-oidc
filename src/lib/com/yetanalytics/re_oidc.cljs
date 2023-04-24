@@ -43,7 +43,7 @@
   [^UserManager user-manager
    {:keys [on-user-loaded
            on-user-unloaded]}]
-  (doto user-manager.events
+  (doto (.-events ^js user-manager)
     (.addUserLoaded
      (cond-> (u/dispatch-cb [::user-loaded])
        on-user-loaded
