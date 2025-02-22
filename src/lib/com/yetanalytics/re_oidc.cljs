@@ -1,5 +1,5 @@
 (ns com.yetanalytics.re-oidc
-  (:require [cljsjs.oidc-client :refer [UserManager Log WebStorageStateStore]]
+  (:require [cljsjs.oidc-client-ts :refer [UserManager Log WebStorageStateStore]]
             [re-frame.core :as re-frame]
             [clojure.spec.alpha :as s :include-macros true]
             [com.yetanalytics.re-oidc.user :as user]
