@@ -5,6 +5,13 @@
 
   ;; uncomment to launch tests in a headless environment
   ;; you will have to figure out the path to chrome on your system
-  :launch-js ["chromium" "--headless=new" "--disable-gpu" "--repl" :open-url]
+  :launch-js ["chromium"
+              "--headless=new"
+              "--disable-gpu"
+              "--no-sandbox"
+              "--disable-setuid-sandbox"
+              "--password-store=basic"
+              "--user-data-dir=/tmp/chromium"
+              "--repl" :open-url]
   }
 {:main com.test-runner}
