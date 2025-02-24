@@ -77,6 +77,17 @@
     (doto (UserManager. (clj->js config))
       (reg-events! lifecycle-callbacks))))
 
+(defn- web-storage-state-store
+  [store]
+  (let [store* (case store
+                 :local-storage
+                 js/window.localStorage
+                 :session-storage
+                 js/window.sessionStorage
+                 ;; custom
+                 store)]
+    (new WebStorageStateStore #js {:store store*})))
+
 (re-frame/reg-fx
  ::init-fx
  (fn [{:keys [config
@@ -87,26 +98,9 @@
        :as init-input}]
    (swap! user-manager
           init!
-          (assoc
-           config
-           "stateStore"
-           (new WebStorageStateStore
-                #js {:store (case state-store
-                              :local-storage
-                              js/window.localStorage
-                              :session-storage
-                              js/window.sessionStorage
-                              ;; custom
-                              state-store)})
-           "userStore"
-           (new WebStorageStateStore
-                #js {:store (case user-store
-                              :local-storage
-                              js/window.localStorage
-                              :session-storage
-                              js/window.sessionStorage
-                              ;; custom
-                              user-store)}))
+          (assoc config
+                 "stateStore" (web-storage-state-store state-store)
+                 "userStore"  (web-storage-state-store user-store))
           (select-keys init-input
                        [:on-user-loaded
                         :on-user-unloaded]))))
