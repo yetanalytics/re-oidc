@@ -99,8 +99,11 @@
    (swap! user-manager
           init!
           (assoc config
-                 "stateStore" (web-storage-state-store state-store)
-                 "userStore"  (web-storage-state-store user-store))
+                 ;; loadUserInfo is default true in original oidc-client lib,
+                 ;; false in new oidc-client-ts lib.
+                 "loadUserInfo" true
+                 "stateStore"   (web-storage-state-store state-store)
+                 "userStore"    (web-storage-state-store user-store))
           (select-keys init-input
                        [:on-user-loaded
                         :on-user-unloaded]))))
