@@ -220,27 +220,27 @@
 (defn user-loaded
   "Load a user object from js into the db and set status to :loaded"
   [db [_ js-user]]
-  (let [id-token (.-id_token js-user)
-        access-token (.-access_token js-user)
-        expires-at (.-expires_at js-user)
+  (let [id-token      (.-id_token js-user)
+        access-token  (.-access_token js-user)
+        expires-at    (.-expires_at js-user)
         refresh-token (.-refresh_token js-user)
-        token-type (.-token_type js-user)
-        state (.-state js-user)
+        token-type    (.-token_type js-user)
+        state         (.-state js-user)
         session-state (.-session_state js-user)
-        scope (.-scope js-user)
-        profile (js->clj (.-profile js-user))]
+        scope         (.-scope js-user)
+        profile       (js->clj (.-profile js-user))]
     (assoc db
            ::status :loaded
            ::user
-           {:id-token id-token
-            :access-token access-token
+           {:id-token      id-token
+            :access-token  access-token
             :refresh-token refresh-token
-            :expires-at expires-at
-            :token-type token-type
-            :state state
-            :scope scope
+            :expires-at    expires-at
+            :token-type    token-type
+            :state         state
+            :scope         scope
             :session-state session-state
-            :profile profile})))
+            :profile       profile})))
 
 (re-frame/reg-event-db
  ::user-loaded
@@ -368,26 +368,26 @@
              (dissoc ::callback
                      ::login-query-string))
      :fx [[::init-fx
-           {:config (cond-> oidc-config
-                      redirect-uri-absolution
-                      u/absolve-redirect-uris)
-            :state-store state-store
-            :user-store user-store
-            :on-user-loaded on-user-loaded
+           {:config           (cond-> oidc-config
+                                redirect-uri-absolution
+                                u/absolve-redirect-uris)
+            :state-store      state-store
+            :user-store       user-store
+            :on-user-loaded   on-user-loaded
             :on-user-unloaded on-user-unloaded}]
           (case ?callback
             :login [::signin-redirect-callback-fx
                     {:query-string ?qstring
-                     :on-success on-login-success
-                     :on-failure on-login-failure}]
+                     :on-success   on-login-success
+                     :on-failure   on-login-failure}]
             :logout [::signout-redirect-callback-fx
                      {:on-success on-logout-success
                       :on-failure on-logout-failure}]
             [::get-user-fx
              ;; We need to set the user, if present, no matter what
-             {:auto-login auto-login
-              :on-success on-get-user-success
-              :on-failure on-get-user-failure
+             {:auto-login     auto-login
+              :on-success     on-get-user-success
+              :on-failure     on-get-user-failure
               :on-user-loaded on-user-loaded}])]}))
 
 (re-frame/reg-event-fx
