@@ -165,13 +165,16 @@
  (fn [{:keys [on-success
               on-failure
               query-string]}]
-   (let [on-failure (or on-failure
-                        [::add-error ::signin-redirect-callback-fx])
-         um (get-user-manager)]
-     (-> um
-         (.signinRedirectCallback query-string)
+   (let [on-failure   (or on-failure
+                          [::add-error ::signin-redirect-callback-fx])
+         user-manager (get-user-manager)
+         ;; We need a full URL, not query param string, here.
+         ;; See: PRs #535 and #999 on oidc-client-ts.
+         url-string   (str "http://127.0.0.1" query-string)]
+     (-> user-manager
+         (.signinRedirectCallback url-string)
          (u/handle-promise on-success on-failure)
-         (.then #(.clearStaleState um))))))
+         (.then #(.clearStaleState user-manager))))))
 
 (re-frame/reg-fx
  ::signout-redirect-fx
