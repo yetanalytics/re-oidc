@@ -1,4 +1,5 @@
 (ns com.yetanalytics.re-oidc
+  #_{:clj-kondo/ignore [:unused-referred-var]} ; For Log
   (:require [cljsjs.oidc-client-ts :refer [UserManager Log WebStorageStateStore]]
             [re-frame.core :as re-frame]
             [clojure.spec.alpha :as s :include-macros true]
