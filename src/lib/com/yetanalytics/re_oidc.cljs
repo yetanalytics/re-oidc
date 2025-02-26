@@ -133,12 +133,9 @@
          .getUser
          (u/handle-promise
           (cond-> (fn [?user]
-                    (if-let [logged-in-user (and ?user
-                                                 (not
-                                                  (some-> ?user
-                                                          .-expires_at
-                                                          u/expired?))
-                                                 ?user)]
+                    (if-let [logged-in-user
+                             (and ?user
+                                  (not (some-> ?user .-expires_at u/expired?)))]
                       (do
                         (re-frame/dispatch [::user-loaded logged-in-user])
                         ;; ensure any custom loaded callback is fired
