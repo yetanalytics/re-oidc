@@ -193,17 +193,23 @@
          .signoutRedirectCallback
          (u/handle-promise on-success on-failure)))))
 
+(re-frame/reg-fx
+ ::print-error-fx
+ (fn [js-error]
+   (js/console.error js-error)))
+
 (defn add-error
   "Add a thrown error to the list in the db"
-  [db [_ handler-id js-error]]
-  (update db
-          :errors
-          (fnil conj [])
-          (u/js-error->clj
-           handler-id
-           js-error)))
+  [{:keys [db]} [_ handler-id js-error]]
+  {:db (update db
+               :errors
+               (fnil conj [])
+               (u/js-error->clj
+                handler-id
+                js-error))
+   :fx [[::print-error-fx js-error]]})
 
-(re-frame/reg-event-db
+(re-frame/reg-event-fx
  ::add-error
  add-error)
 
