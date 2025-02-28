@@ -9,6 +9,8 @@ services:
     image: quay.io/keycloak/keycloak:16.1.0
     environment:
       KEYCLOAK_IMPORT: /tmp/test-realm.json
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: changeme123
     configs:
       - source: test_realm
         target: /tmp/test-realm.json

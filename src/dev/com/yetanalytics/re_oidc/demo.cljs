@@ -25,7 +25,9 @@
 (def static-config
   {:auto-login false
    :on-login-success #(push-state "/")
-   :on-logout-success #(push-state "/")})
+   :on-logout-success #(push-state "/")
+   :on-get-user-success #(println "get user success" %)
+   :user-store :local-storage})
 
 ;; Init the demo's DB
 (re-frame/reg-event-db
@@ -52,7 +54,7 @@
           ;; Initialize OIDC from the remote config
           [::re-oidc/init
            (assoc static-config
-                  :user-store :local-storage
+
                   ;; These config options are passed directly to the OIDC client
                   :oidc-config
                   config)]]]}))
@@ -93,6 +95,72 @@
    (.error js/console "Failed to get token echo from api server, status:" status)
    {}))
 
+;; XAPI stuff
+(re-frame/reg-event-fx
+ ::get-statements!
+ (fn [{{status ::re-oidc/status
+        :as db} :db} _]
+   (if (= :loaded status)
+     (let [{{:keys [access-token]} ::re-oidc/user} db]
+       {:http-xhrio {:uri "http://0.0.0.0:8080/xapi/statements"
+                     :method :get
+                     :headers {"X-Experience-Api-Version" "1.0.3"
+                               "Authorization" (format "Bearer %s" access-token)}
+                     :response-format (ajax/json-response-format
+                                       {:keywords? true})
+                     :on-success [::recv-get-statements]
+                     :on-failure [::fail-get-statements]}})
+     (do
+       (.error js/console "Can't call XAPI if not logged in!")
+       {}))))
+
+(re-frame/reg-event-db
+ ::recv-get-statements
+ (fn [db [_ statement-response]]
+   (assoc db ::statement-response statement-response)))
+
+(re-frame/reg-event-fx
+ ::fail-get-statements
+ (fn [ctx [_ {:keys [status]}]]
+   (.error js/console "Failed to get statements, status:" status)
+   {}))
+
+(re-frame/reg-event-fx
+ ::post-statement!
+ (fn [{{status ::re-oidc/status
+        :as db} :db} _]
+   (if (= :loaded status)
+     (let [{{:keys [access-token]} ::re-oidc/user} db]
+       {:http-xhrio {:uri "http://0.0.0.0:8080/xapi/statements"
+                     :method :post
+                     :headers {"Content-Type" "application/json"
+                               "X-Experience-Api-Version" "1.0.3"
+                               "Authorization" (format "Bearer %s" access-token)}
+                     :format (ajax/json-request-format)
+                     :response-format (ajax/json-response-format
+                                       {:keywords? true})
+                     :on-success [::recv-post-statement]
+                     :on-failure [::fail-post-statement]
+                     :params
+                     {"actor" {"mbox" "mailto:bob@example.com"}
+                      "verb" {"id" "https://example.com/verbs/foo"}
+                      "object" {"id" "https://example.com/activity"}}}})
+     (do
+       (.error js/console "Can't call XAPI if not logged in!")
+       {}))))
+
+(re-frame/reg-event-db
+ ::recv-post-statement
+ (fn [db [_ statement-post-response]]
+   (assoc db ::statement-post-response statement-post-response)))
+
+(re-frame/reg-event-fx
+ ::fail-post-statement
+ (fn [ctx [_ {:keys [status]}]]
+   (.error js/console "Failed to post statement, status:" status)
+   {}))
+
+
 ;; Compose init events for the demo db & getting remote config
 (re-frame/reg-event-fx
  ::init!
@@ -115,15 +183,11 @@
 (defn process-callbacks!
   "Detect post login/logout callbacks and issue route dispatch to re-oidc."
   [& _]
-  (case js/window.location.pathname
-    "/login-callback" (re-frame/dispatch
-                       [::re-oidc/login-callback
-                        static-config
-                        js/window.location.search])
-    "/logout-callback" (re-frame/dispatch
-                        [::re-oidc/logout-callback
-                         static-config])
-    nil))
+  (when-let [search (not-empty js/window.location.search)]
+    (re-frame/dispatch
+     [::re-oidc/login-callback
+      static-config
+      search])))
 
 (defn hello-world []
   [:div
@@ -141,6 +205,13 @@
       [:button "Loading..."]]
      :loaded
      [:div
+      [:div
+       [:button {:on-click #(re-frame/dispatch [::get-statements!])}
+        "Get Statements"]
+       [:button {:on-click #(re-frame/dispatch [::post-statement!])}
+        "Post Statement"]
+       ]
+
       [:button
        {:on-click #(re-frame/dispatch [::echo-token!])}
        "Echo Token"]
