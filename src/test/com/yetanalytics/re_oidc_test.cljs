@@ -16,12 +16,12 @@
                       :message "whoops!",
                       :handler :some-handler,
                       :ex-data {:type :com.yetanalytics.re-oidc-test/whoops}}]}
-           (add-error
-            {}
-            [nil
-             :some-handler
-             (ex-info "whoops!"
-                      {:type ::whoops})])))))
+           (:db (add-error
+                 {:db {}}
+                 [nil
+                  :some-handler
+                  (ex-info "whoops!"
+                           {:type ::whoops})]))))))
 
 (deftest user-loaded-test
   (testing "Loads the user from JS"

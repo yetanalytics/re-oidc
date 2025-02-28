@@ -1,5 +1,6 @@
 (ns com.yetanalytics.re-oidc
-  (:require [cljsjs.oidc-client :refer [UserManager Log WebStorageStateStore]]
+  #_{:clj-kondo/ignore [:unused-referred-var]} ; For Log
+  (:require [cljsjs.oidc-client-ts :refer [UserManager Log WebStorageStateStore]]
             [re-frame.core :as re-frame]
             [clojure.spec.alpha :as s :include-macros true]
             [com.yetanalytics.re-oidc.user :as user]
@@ -77,6 +78,17 @@
     (doto (UserManager. (clj->js config))
       (reg-events! lifecycle-callbacks))))
 
+(defn- web-storage-state-store
+  [store]
+  (let [store* (case store
+                 :local-storage
+                 js/window.localStorage
+                 :session-storage
+                 js/window.sessionStorage
+                 ;; custom
+                 store)]
+    (new WebStorageStateStore #js {:store store*})))
+
 (re-frame/reg-fx
  ::init-fx
  (fn [{:keys [config
@@ -87,26 +99,12 @@
        :as init-input}]
    (swap! user-manager
           init!
-          (assoc
-           config
-           "stateStore"
-           (new WebStorageStateStore
-                #js {:store (case state-store
-                              :local-storage
-                              js/window.localStorage
-                              :session-storage
-                              js/window.sessionStorage
-                              ;; custom
-                              state-store)})
-           "userStore"
-           (new WebStorageStateStore
-                #js {:store (case user-store
-                              :local-storage
-                              js/window.localStorage
-                              :session-storage
-                              js/window.sessionStorage
-                              ;; custom
-                              user-store)}))
+          (assoc config
+                 ;; loadUserInfo is default true in original oidc-client lib,
+                 ;; false in new oidc-client-ts lib.
+                 "loadUserInfo" true
+                 "stateStore"   (web-storage-state-store state-store)
+                 "userStore"    (web-storage-state-store user-store))
           (select-keys init-input
                        [:on-user-loaded
                         :on-user-unloaded]))))
@@ -135,12 +133,9 @@
          .getUser
          (u/handle-promise
           (cond-> (fn [?user]
-                    (if-let [logged-in-user (and ?user
-                                                 (not
-                                                  (some-> ?user
-                                                          .-expires_at
-                                                          u/expired?))
-                                                 ?user)]
+                    (if-let [logged-in-user
+                             (and ?user
+                                  (not (some-> ?user .-expires_at u/expired?)))]
                       (do
                         (re-frame/dispatch [::user-loaded logged-in-user])
                         ;; ensure any custom loaded callback is fired
@@ -168,13 +163,16 @@
  (fn [{:keys [on-success
               on-failure
               query-string]}]
-   (let [on-failure (or on-failure
-                        [::add-error ::signin-redirect-callback-fx])
-         um (get-user-manager)]
-     (-> um
-         (.signinRedirectCallback query-string)
+   (let [on-failure   (or on-failure
+                          [::add-error ::signin-redirect-callback-fx])
+         user-manager (get-user-manager)
+         ;; We need a full URL, not query param string, here.
+         ;; See: PRs #535 and #999 on oidc-client-ts.
+         url-string   (str "http://127.0.0.1" query-string)]
+     (-> user-manager
+         (.signinRedirectCallback url-string)
          (u/handle-promise on-success on-failure)
-         (.then #(.clearStaleState um))))))
+         (.then #(.clearStaleState user-manager))))))
 
 (re-frame/reg-fx
  ::signout-redirect-fx
@@ -196,44 +194,50 @@
          .signoutRedirectCallback
          (u/handle-promise on-success on-failure)))))
 
+(re-frame/reg-fx
+ ::print-error-fx
+ (fn [js-error]
+   (js/console.error js-error)))
+
 (defn add-error
   "Add a thrown error to the list in the db"
-  [db [_ handler-id js-error]]
-  (update db
-          :errors
-          (fnil conj [])
-          (u/js-error->clj
-           handler-id
-           js-error)))
+  [{:keys [db]} [_ handler-id js-error]]
+  {:db (update db
+               :errors
+               (fnil conj [])
+               (u/js-error->clj
+                handler-id
+                js-error))
+   :fx [[::print-error-fx js-error]]})
 
-(re-frame/reg-event-db
+(re-frame/reg-event-fx
  ::add-error
  add-error)
 
 (defn user-loaded
   "Load a user object from js into the db and set status to :loaded"
   [db [_ js-user]]
-  (let [id-token (.-id_token js-user)
-        access-token (.-access_token js-user)
-        expires-at (.-expires_at js-user)
+  (let [id-token      (.-id_token js-user)
+        access-token  (.-access_token js-user)
+        expires-at    (.-expires_at js-user)
         refresh-token (.-refresh_token js-user)
-        token-type (.-token_type js-user)
-        state (.-state js-user)
+        token-type    (.-token_type js-user)
+        state         (.-state js-user)
         session-state (.-session_state js-user)
-        scope (.-scope js-user)
-        profile (js->clj (.-profile js-user))]
+        scope         (.-scope js-user)
+        profile       (js->clj (.-profile js-user))]
     (assoc db
            ::status :loaded
            ::user
-           {:id-token id-token
-            :access-token access-token
+           {:id-token      id-token
+            :access-token  access-token
             :refresh-token refresh-token
-            :expires-at expires-at
-            :token-type token-type
-            :state state
-            :scope scope
+            :expires-at    expires-at
+            :token-type    token-type
+            :state         state
+            :scope         scope
             :session-state session-state
-            :profile profile})))
+            :profile       profile})))
 
 (re-frame/reg-event-db
  ::user-loaded
@@ -361,26 +365,26 @@
              (dissoc ::callback
                      ::login-query-string))
      :fx [[::init-fx
-           {:config (cond-> oidc-config
-                      redirect-uri-absolution
-                      u/absolve-redirect-uris)
-            :state-store state-store
-            :user-store user-store
-            :on-user-loaded on-user-loaded
+           {:config           (cond-> oidc-config
+                                redirect-uri-absolution
+                                u/absolve-redirect-uris)
+            :state-store      state-store
+            :user-store       user-store
+            :on-user-loaded   on-user-loaded
             :on-user-unloaded on-user-unloaded}]
           (case ?callback
             :login [::signin-redirect-callback-fx
                     {:query-string ?qstring
-                     :on-success on-login-success
-                     :on-failure on-login-failure}]
+                     :on-success   on-login-success
+                     :on-failure   on-login-failure}]
             :logout [::signout-redirect-callback-fx
                      {:on-success on-logout-success
                       :on-failure on-logout-failure}]
             [::get-user-fx
              ;; We need to set the user, if present, no matter what
-             {:auto-login auto-login
-              :on-success on-get-user-success
-              :on-failure on-get-user-failure
+             {:auto-login     auto-login
+              :on-success     on-get-user-success
+              :on-failure     on-get-user-failure
               :on-user-loaded on-user-loaded}])]}))
 
 (re-frame/reg-event-fx

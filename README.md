@@ -3,11 +3,33 @@
 [![CI](https://github.com/yetanalytics/re-oidc/actions/workflows/ci.yml/badge.svg)](https://github.com/yetanalytics/re-oidc/actions/workflows/ci.yml)
 [![Clojars Version](https://img.shields.io/clojars/v/com.yetanalytics/re-oidc)](https://clojars.org/com.yetanalytics/re-oidc)
 
-A wrapper for [oidc-client-js](https://github.com/IdentityModel/oidc-client-js) providing [OIDC](https://openid.net/specs/openid-connect-core-1_0.html) support for re-frame + reagent applications in cljs. Inspired by [re-frame-oidc](https://github.com/tafarij/re-frame-oidc).
+A wrapper for [oidc-client-ts](https://github.com/authts/oidc-client-ts) providing [OIDC](https://openid.net/specs/openid-connect-core-1_0.html) support for re-frame + reagent applications in cljs. Inspired by [re-frame-oidc](https://github.com/tafarij/re-frame-oidc).
 
 ## Overview
 
 Re-frame fx, event handlers and subscriptions are provided to allow interactive sign-in from an SPA without the need for a server backend.
+
+## Installation
+
+Add the following dependency to your deps.edn file:
+
+```clojure
+com.yetanalytics/re-oidc {:mvn/version "0.1.0"
+                          :exclusions  [io.github.cljsjs/oidc-client-ts
+                                        reagent/reagent
+                                        re-frame/re-frame]}
+```
+
+For production, you will need to add the following `cljsjs/oidc_client_ts.cljs` ClojureScript source:
+
+```clojure
+(ns cljsjs.oidc-client-ts
+  (:require [oidc-client-ts :as oidc]))
+
+(def UserManager oidc/UserManager)
+(def Log oidc/Log)
+(def WebStorageStateStore oidc/WebStorageStateStore)
+```
 
 ## Configuration
 
