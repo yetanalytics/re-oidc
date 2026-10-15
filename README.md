@@ -142,6 +142,26 @@ To run the tests, run:
     make test
 
 
+## Dependency vulnerability tracking
+
+The `Deps` workflow submits the library's Maven dependency tree to GitHub's
+dependency graph on pushes to `main` and can also be run manually. Dependabot
+uses this graph to check for known vulnerabilities.
+
+`make pom.xml` regenerates the ignored POM from the base dependencies in
+`deps.edn`, excluding local user configuration. The snapshot is associated with
+`deps.edn` in GitHub and includes Clojure, ClojureScript, Reagent, re-frame,
+the CLJSJS `oidc-client-ts` package, and their transitive Maven dependencies.
+
+The CLJSJS package is submitted under its Maven coordinates. This does not
+establish npm advisory coverage for the JavaScript bundled inside that package;
+upstream JavaScript dependencies require separate coverage review. Applications
+that replace the CLJSJS package with npm dependencies should track those through
+their own npm manifests and lockfiles.
+
+The `:dev` and `:api-demo` aliases are excluded, including development/test tools
+and the demo API server. These require separate coverage.
+
 ## License
 
 Copyright © 2022-2025 Yet Analytics, Inc.

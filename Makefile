@@ -17,3 +17,8 @@ serve-advanced:
 
 test:
 	clojure -M:dev:test
+
+.PHONY: pom.xml
+
+pom.xml:
+	clojure -X:deps mvn-pom :user nil
