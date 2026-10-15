@@ -1,10 +1,10 @@
 {
-    "authority": "http://0.0.0.0:8080/auth/realms/test",
-    "client_id": "testapp_public",
-    "redirect_uri": "http://localhost:9500/login-callback",
+    "authority": "http://0.0.0.0:8081/auth/realms/test",
+    "client_id": "lrs_admin_ui",
+    "redirect_uri": "http://localhost:9500",
     "response_type": "code",
-    "post_logout_redirect_uri": "http://localhost:9500/logout-callback",
-    "scope": "openid profile",
+    "post_logout_redirect_uri": "http://localhost:9500",
+    "scope": "openid profile lrs:all lrs:admin",
     "automaticSilentRenew": true,
     "monitorSession": false,
     "filterProtocolClaims": false
